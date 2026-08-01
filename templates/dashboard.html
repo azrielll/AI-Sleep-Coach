@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Dashboard AI Sleep Coach — ringkasan tidur dan akses cepat ke fitur utama.">
+  <title>Dashboard — AI Sleep Coach</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="{{ url_for('index') }}" class="navbar-brand">
+      <span class="icon">🌙</span>
+      <span>AI Sleep Coach</span>
+    </a>
+    <div class="navbar-nav">
+      <a href="{{ url_for('dashboard') }}" class="active">Dashboard</a>
+      <a href="{{ url_for('analisis_awal') }}">Analisis Medis</a>
+      <a href="{{ url_for('daily_log') }}">Log Harian</a>
+      <a href="{{ url_for('progress') }}">Perkembangan Tidur</a>
+      <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm">Keluar</a>
+    </div>
+  </nav>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-container">
+    {% for cat, msg in messages %}
+    <div class="flash flash-{{ cat }}" onclick="this.remove()">
+      <span>{{ '✓' if cat == 'success' else '⚠' }}</span>{{ msg }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <div class="page-wrapper">
+    <div class="container">
+      <!-- Header -->
+      <div class="page-header">
+        <div class="flex-between" style="flex-wrap:wrap; gap:1rem;">
+          <div>
+            <h1 class="page-title">
+              Halo, {{ session.user_nama }} 👋
+            </h1>
+            <p class="page-subtitle">Pantau kualitas tidurmu hari ini</p>
+          </div>
+          <div style="display:flex; gap:.75rem; flex-wrap:wrap;">
+            <a href="{{ url_for('daily_log') }}" class="btn btn-primary">
+              📝 Isi Log Harian
+            </a>
+            <a href="{{ url_for('analisis_awal') }}" class="btn btn-outline">
+              📋 Riwayat Analisis Medis
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stat Cards -->
+      <div class="grid grid-4 mb-3">
+        <div class="card stat-card">
+          <span class="stat-icon">😴</span>
+          {% if latest_log %}
+          <div
+            class="stat-value {% if latest_log['kategori'] == 'Baik' %}cat-baik{% elif latest_log['kategori'] == 'Cukup' %}cat-cukup{% else %}cat-kurang{% endif %}">
+            {{ latest_log['sleep_score'] }}
+          </div>
+          <div class="stat-desc">Skor Tidur Terakhir</div>
+          <div class="mt-1">
+            <span
+              class="badge {% if latest_log['kategori'] == 'Baik' %}badge-success{% elif latest_log['kategori'] == 'Cukup' %}badge-warning{% else %}badge-danger{% endif %}">
+              {{ latest_log['kategori'] }}
+            </span>
+          </div>
+          {% else %}
+          <div class="stat-value text-muted">—</div>
+          <div class="stat-desc">Belum ada log</div>
+          {% endif %}
+        </div>
+
+        <div class="card stat-card">
+          <span class="stat-icon">📅</span>
+          <div class="stat-value gradient-text">{{ total_logs }}</div>
+          <div class="stat-desc">Total Catatan Harian</div>
+        </div>
+
+        <div class="card stat-card">
+          <span class="stat-icon">🔬</span>
+          {% if latest_analisis %}
+          <div class="stat-value" style="font-size:1.2rem;">
+            {% if latest_analisis['hasil_prediksi'] == 'None' %}
+            <span class="text-success">Normal</span>
+            {% elif latest_analisis['hasil_prediksi'] == 'Insomnia' %}
+            <span class="text-warning">Insomnia</span>
+            {% else %}
+            <span class="text-danger">Sleep Apnea</span>
+            {% endif %}
+          </div>
+          <div class="stat-desc">Hasil Analisis Terakhir</div>
+          {% else %}
+          <div class="stat-value text-muted">—</div>
+          <div class="stat-desc">Belum ada analisis</div>
+          {% endif %}
+        </div>
+
+        <div class="card stat-card">
+          <span class="stat-icon">✨</span>
+          {% if latest_log %}
+          <div class="stat-value" style="font-size:1.1rem;">{{ latest_log['tanggal'] }}</div>
+          {% else %}
+          <div class="stat-value text-muted" style="font-size:1.1rem;">—</div>
+          {% endif %}
+          <div class="stat-desc">Tanggal Log Terakhir</div>
+        </div>
+      </div>
+
+      <div class="grid grid-2">
+        <!-- Mini Chart -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">📈 Skor Tidur 7 Hari Terakhir</h3>
+            <a href="{{ url_for('progress') }}" class="btn btn-ghost btn-sm">Lihat Semua →</a>
+          </div>
+          {% if logs_7 %}
+          <canvas id="miniChart" height="160"></canvas>
+          {% else %}
+          <div class="empty-state">
+            <div class="empty-icon">📊</div>
+            <p class="empty-desc">Belum ada data. Mulai catat log harian kamu!</p>
+            <a href="{{ url_for('daily_log') }}" class="btn btn-primary btn-sm">Isi Sekarang</a>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">⚡ Aksi Cepat</h3>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:.75rem;">
+            <a href="{{ url_for('daily_log') }}" class="btn btn-ghost btn-full"
+              style="justify-content:flex-start; gap:1rem;">
+              <span style="font-size:1.4rem;">📝</span>
+              <div style="text-align:left;">
+                <div style="font-weight:600; color:var(--text-primary);">Isi Log Harian Hari Ini</div>
+                <div style="font-size:.8rem; color:var(--text-muted);">Catat kebiasaan tidur & dapatkan Skor Tidur</div>
+              </div>
+            </a>
+            <a href="{{ url_for('analisis_awal') }}" class="btn btn-ghost btn-full"
+              style="justify-content:flex-start; gap:1rem;">
+              <span style="font-size:1.4rem;">📋</span>
+              <div style="text-align:left;">
+                <div style="font-weight:600; color:var(--text-primary);">Riwayat Analisis Medis</div>
+                <div style="font-size:.8rem; color:var(--text-muted);">Hasil evaluasi & catatan dari tenaga kesehatan
+                </div>
+              </div>
+            </a>
+            <a href="{{ url_for('progress') }}" class="btn btn-ghost btn-full"
+              style="justify-content:flex-start; gap:1rem;">
+              <span style="font-size:1.4rem;">📈</span>
+              <div style="text-align:left;">
+                <div style="font-weight:600; color:var(--text-primary);">Lihat Perkembangan</div>
+                <div style="font-size:.8rem; color:var(--text-muted);">Grafik & riwayat Skor Tidur kamu</div>
+              </div>
+            </a>
+          </div>
+
+          {% if latest_log %}
+          <hr class="divider">
+          <div style="font-size:.85rem; color:var(--text-muted);">
+            <strong style="color:var(--text-secondary);">Log terakhir:</strong>
+            {{ latest_log['tanggal'] }} — Tidur {{ latest_log['jam_mulai_tidur'] }}, Bangun {{ latest_log['jam_bangun']
+            }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Hasil Analisis dari Tenaga Kesehatan -->
+      {% if latest_analisis %}
+      <div class="card mt-3">
+        <div class="card-header flex-between">
+          <h3 class="card-title">🩺 Hasil Analisis dari Tenaga Kesehatan</h3>
+          <a href="{{ url_for('analisis_awal') }}" class="btn btn-ghost btn-sm">Lihat Semua Riwayat ({{
+            (analisis_history|length) + 1 }}) →</a>
+        </div>
+
+        <div class="grid grid-2" style="gap:1.5rem; align-items:start;">
+          <div>
+            <p style="font-size:.85rem; color:var(--text-muted); margin-bottom:.25rem;">Status Risiko Terbaru</p>
+            <div style="font-size:1.8rem; font-weight:800; font-family:'Outfit',sans-serif;">
+              {% if latest_analisis['hasil_prediksi'] == 'None' %}
+              <span class="text-success">✅ Tidak Ada Gangguan</span>
+              {% elif latest_analisis['hasil_prediksi'] == 'Insomnia' %}
+              <span class="text-warning">⚠️ Risiko Insomnia</span>
+              {% else %}
+              <span class="text-danger">🔴 Risiko Sleep Apnea</span>
+              {% endif %}
+            </div>
+            <p style="font-size:.82rem; color:var(--text-muted); margin-top:.35rem;">
+              Tanggal: {{ latest_analisis['tanggal'] }} | Dibuat oleh: <strong>{{ latest_analisis['admin_nama'] or
+                'Tenaga Kesehatan' }}</strong>
+            </p>
+          </div>
+
+          <div>
+            <p style="font-size:.85rem; color:var(--text-muted); margin-bottom:.75rem;">Probabilitas Model ML</p>
+            {% for label, pct in (latest_analisis['probabilitas_json'] | fromjson).items() %}
+            <div class="prob-bar-item">
+              <div class="prob-bar-header">
+                <span style="color:var(--text-secondary); font-size:.85rem;">{% if label == 'None' %}Normal{% else %}{{
+                  label }}{% endif %}</span>
+                <span style="font-weight:600;">{{ pct }}%</span>
+              </div>
+              <div class="prob-bar-track">
+                <div class="prob-bar-fill" style="
+                      width:{{ pct }}%;
+                      background:{% if label == 'None' %}var(--success){% elif label == 'Insomnia' %}var(--warning){% else %}var(--danger){% endif %};
+                    "></div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        {% if latest_analisis['catatan_admin'] %}
+        <div
+          style="background:rgba(108,125,255,0.1); border-left:4px solid var(--primary); padding:0.85rem 1rem; border-radius:8px; margin-top:1.25rem;">
+          <strong style="color:var(--primary); font-size:0.9rem; display:block; margin-bottom:0.25rem;">💬 Catatan
+            Khusus dari Tenaga Kesehatan:</strong>
+          <p style="font-size:0.88rem; color:var(--text-primary); margin:0;">{{ latest_analisis['catatan_admin'] }}</p>
+        </div>
+        {% endif %}
+
+        <div style="background:var(--surface-light); padding:1rem; border-radius:12px; margin-top:1.25rem;">
+          <h4 style="margin-bottom: 0.5rem; color:var(--primary); font-size:0.95rem;">💡 Penjelasan & Rekomendasi AI
+            (Gemini)</h4>
+          <div style="font-size:0.88rem; line-height: 1.6; color:var(--text-secondary); white-space: pre-wrap;">{{
+            latest_analisis['penjelasan_gemini'] | render_markdown }}</div>
+        </div>
+      </div>
+      {% else %}
+      <div class="card mt-3">
+        <div class="card-header">
+          <h3 class="card-title">🩺 Hasil Analisis dari Tenaga Kesehatan</h3>
+        </div>
+        <div class="empty-state" style="padding:1.5rem 1rem;">
+          <div class="empty-icon">🏥</div>
+          <p class="empty-desc">Belum ada hasil analisis medis yang dibuatkan oleh Tenaga Kesehatan untuk Anda.</p>
+        </div>
+      </div>
+      {% endif %}
+
+    </div><!-- /container -->
+  </div><!-- /page-wrapper -->
+
+  <script>
+    {% if logs_7 %}
+    const labels = {{ logs_7 | map(attribute = 'tanggal') | list | tojson }};
+    const scores = {{ logs_7 | map(attribute = 'sleep_score') | list | tojson }};
+    const ctx = document.getElementById('miniChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Sleep Score',
+          data: scores,
+          borderColor: '#6c7dff',
+          backgroundColor: 'rgba(108,125,255,0.1)',
+          borderWidth: 2.5,
+          pointBackgroundColor: '#6c7dff',
+          pointBorderColor: '#0f1628',
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#141c35',
+            borderColor: 'rgba(108,125,255,0.3)',
+            borderWidth: 1,
+            titleColor: '#e8eaf6',
+            bodyColor: '#8b95c9',
+          }
+        },
+        scales: {
+          y: {
+            min: 0, max: 100,
+            grid: { color: 'rgba(99,120,220,0.1)' },
+            ticks: { color: '#8b95c9', font: { size: 11 } }
+          },
+          x: {
+            grid: { display: false },
+            ticks: { color: '#8b95c9', font: { size: 10 } }
+          }
+        }
+      }
+    });
+    {% endif %}
+  </script>
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+
+</html>

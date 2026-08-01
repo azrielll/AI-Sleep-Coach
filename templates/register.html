@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Daftar akun AI Sleep Coach — gratis dan mulai analisis tidurmu sekarang.">
+  <title>Daftar — AI Sleep Coach</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-container">
+        {% for cat, msg in messages %}
+          <div class="flash flash-{{ cat }}" onclick="this.remove()">
+            <span>{{ '✓' if cat == 'success' else '⚠' }}</span>{{ msg }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <div class="auth-page">
+    <div class="hero-orb hero-orb-1" style="opacity:.5;"></div>
+    <div class="hero-orb hero-orb-2" style="opacity:.5;"></div>
+
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="logo-icon">🌙</div>
+        <a href="{{ url_for('index') }}" style="font-family:'Outfit',sans-serif; font-size:1.4rem; font-weight:700;">
+          <span class="gradient-text">AI Sleep Coach</span>
+        </a>
+      </div>
+
+      <h1 class="auth-title">Buat Akun Baru</h1>
+      <p class="auth-subtitle">Mulai perjalanan tidur yang lebih sehat</p>
+
+      <hr class="divider">
+
+      <form method="POST" id="registerForm" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="nama">Nama Lengkap</label>
+          <input
+            type="text"
+            id="nama"
+            name="nama"
+            class="form-control"
+            placeholder="Nama kamu"
+            required
+            autocomplete="name"
+          >
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="email">Email</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            class="form-control"
+            placeholder="nama@email.com"
+            required
+            autocomplete="email"
+          >
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <div style="position:relative;">
+            <input
+              type="password"
+              id="password"
+              name="password"
+              class="form-control"
+              placeholder="Minimal 6 karakter"
+              required
+              autocomplete="new-password"
+              style="padding-right:3rem;"
+            >
+            <button type="button" onclick="togglePassword('password')"
+              style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.1rem;">
+              👁
+            </button>
+          </div>
+          <!-- Password strength -->
+          <div id="pwdStrength" style="display:none; margin-top:.5rem;">
+            <div style="height:4px; background:var(--border); border-radius:100px; overflow:hidden;">
+              <div id="pwdBar" style="height:100%; border-radius:100px; transition:all .3s;"></div>
+            </div>
+            <span id="pwdLabel" style="font-size:.78rem; color:var(--text-muted); margin-top:.3rem; display:block;"></span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="confirm_password">Konfirmasi Password</label>
+          <input
+            type="password"
+            id="confirm_password"
+            name="confirm_password"
+            class="form-control"
+            placeholder="Ulangi password"
+            required
+            autocomplete="new-password"
+          >
+          <span id="matchMsg" style="font-size:.78rem; margin-top:.3rem; display:none;"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full mt-2" id="registerBtn">
+          Buat Akun
+        </button>
+      </form>
+
+      <div class="auth-link">
+        Sudah punya akun?
+        <a href="{{ url_for('login') }}" style="color:var(--primary); font-weight:600;">Login</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function togglePassword(id) {
+      const inp = document.getElementById(id);
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+    }
+
+    const pwdInput = document.getElementById('password');
+    const confirmInput = document.getElementById('confirm_password');
+    const pwdStrength = document.getElementById('pwdStrength');
+    const pwdBar = document.getElementById('pwdBar');
+    const pwdLabel = document.getElementById('pwdLabel');
+    const matchMsg = document.getElementById('matchMsg');
+
+    pwdInput.addEventListener('input', function() {
+      const v = this.value;
+      pwdStrength.style.display = v ? 'block' : 'none';
+      let score = 0;
+      if (v.length >= 6) score++;
+      if (v.length >= 10) score++;
+      if (/[A-Z]/.test(v)) score++;
+      if (/[0-9]/.test(v)) score++;
+      if (/[^A-Za-z0-9]/.test(v)) score++;
+      const colors = ['#f87171','#fbbf24','#fbbf24','#34d399','#6c7dff'];
+      const labels = ['Sangat Lemah','Lemah','Cukup','Kuat','Sangat Kuat'];
+      const width = (score/5)*100 + '%';
+      pwdBar.style.width = width;
+      pwdBar.style.background = colors[score-1] || '#f87171';
+      pwdLabel.textContent = labels[score-1] || '';
+      pwdLabel.style.color = colors[score-1] || '#f87171';
+    });
+
+    confirmInput.addEventListener('input', function() {
+      matchMsg.style.display = 'block';
+      if (this.value === pwdInput.value) {
+        matchMsg.textContent = '✓ Password cocok';
+        matchMsg.style.color = 'var(--success)';
+      } else {
+        matchMsg.textContent = '✕ Password tidak cocok';
+        matchMsg.style.color = 'var(--danger)';
+      }
+    });
+
+    document.getElementById('registerForm').addEventListener('submit', function(e) {
+      if (confirmInput.value !== pwdInput.value) {
+        e.preventDefault();
+        return;
+      }
+      const btn = document.getElementById('registerBtn');
+      btn.innerHTML = '<span class="spinner"></span> Membuat Akun...';
+      btn.disabled = true;
+    });
+  </script>
+</body>
+</html>

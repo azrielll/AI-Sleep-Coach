@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="AI Sleep Coach — Analisis dan pemantauan kesehatan tidur berbasis Machine Learning dan AI Generatif.">
+  <title>AI Sleep Coach — Kenali Kualitas Tidurmu</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="{{ url_for('index') }}" class="navbar-brand">
+      <span class="icon">🌙</span>
+      <span>AI Sleep Coach</span>
+    </a>
+    <div class="navbar-nav">
+      <a href="#fitur">Fitur</a>
+      <a href="#cara-kerja">Cara Kerja</a>
+      {% if session.get('user_id') %}
+      <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-sm">Dashboard</a>
+      {% else %}
+      <a href="{{ url_for('login') }}">Login</a>
+      <a href="{{ url_for('register') }}" class="btn btn-primary btn-sm">Mulai Gratis</a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-container">
+    {% for cat, msg in messages %}
+    <div class="flash flash-{{ cat }}" onclick="this.remove()">
+      <span>{{ '✓' if cat == 'success' else ('⚠' if cat == 'warning' else '✕') }}</span>
+      {{ msg }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-orb hero-orb-1"></div>
+    <div class="hero-orb hero-orb-2"></div>
+    <div class="container hero-content" style="padding-top:6rem; padding-bottom:4rem;">
+      <div style="max-width:680px;">
+        <h1>
+          Tidur Lebih Baik, <br>
+          <span class="gradient-text">Hidup Lebih Sehat</span>
+        </h1>
+        <p style="font-size:1.15rem; margin-top:1.25rem; max-width:540px; color:var(--text-secondary);">
+          Deteksi risiko gangguan tidurmu dengan AI, catat kebiasaan tidur harian, dan pantau progresmu dari waktu ke
+          waktu.
+        </p>
+        <div class="hero-actions">
+          <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">
+            🚀 Mulai Analisis Gratis
+          </a>
+          <a href="#cara-kerja" class="btn btn-ghost btn-lg">
+            ▶ Lihat Cara Kerja
+          </a>
+        </div>
+        <!-- Stats -->
+        <div style="display:flex; gap:2rem; margin-top:3rem; flex-wrap:wrap;">
+          <div>
+            <div style="font-size:1.6rem; font-weight:800; font-family:'Outfit',sans-serif;" class="gradient-text">3
+              Kelas</div>
+            <div style="font-size:.85rem; color:var(--text-muted);">Deteksi Gangguan</div>
+          </div>
+          <div style="width:1px; background:var(--border);"></div>
+          <div>
+            <div style="font-size:1.6rem; font-weight:800; font-family:'Outfit',sans-serif;" class="gradient-text">6
+              Variabel</div>
+            <div style="font-size:.85rem; color:var(--text-muted);">Sleep Score Harian</div>
+          </div>
+          <div style="width:1px; background:var(--border);"></div>
+          <div>
+            <div style="font-size:1.6rem; font-weight:800; font-family:'Outfit',sans-serif;" class="gradient-text">AI
+            </div>
+            <div style="font-size:.85rem; color:var(--text-muted);">Rekomendasi Personal</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Fitur -->
+  <section class="section" id="fitur">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-label">Fitur Utama</span>
+        <h2>Solusi Kesehatan Tidur Terpadu</h2>
+        <p style="margin-top:.75rem;">Kolaborasi antara Tenaga Kesehatan dan Pasien didukung teknologi AI dan Machine
+          Learning.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <span class="feature-icon">🩺</span>
+          <h3 class="feature-title">Evaluasi Tenaga Kesehatan</h3>
+          <p style="font-size:.9rem;">Tenaga kesehatan melakukan analisis medis berbasis model Random Forest untuk
+            mendeteksi risiko Insomnia atau Sleep Apnea.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🤖</span>
+          <h3 class="feature-title">Rekomendasi AI Gemini</h3>
+          <p style="font-size:.9rem;">Google Gemini menerjemahkan hasil analisis klinis menjadi penjelasan naratif
+            bahasa alami dan saran konkret bagi pasien.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">📊</span>
+          <h3 class="feature-title">Analisis Klinis SHAP</h3>
+          <p style="font-size:.9rem;">Dashboard Tenaga Kesehatan dilengkapi visualisasi kontribusi fitur (SHAP) untuk
+            mendukung keakuratan evaluasi medis.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">📝</span>
+          <h3 class="feature-title">Daily Log Harian</h3>
+          <p style="font-size:.9rem;">Pasien mencatat kebiasaan tidur harian (durasi, stres, kafein, olahraga) dan
+            mendapatkan perhitungan Sleep Score otomatis.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">📈</span>
+          <h3 class="feature-title">Progress Monitoring</h3>
+          <p style="font-size:.9rem;">Pantau grafik tren perkembangan Sleep Score harian pasien dari waktu ke waktu
+            untuk melihat efektivitas perbaikan tidur.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🔐</span>
+          <h3 class="feature-title">Sistem Akses Terproteksi (RBAC)</h3>
+          <p style="font-size:.9rem;">Pemisahan akses khusus antara Tenaga Kesehatan (Admin) dan Pasien untuk menjamin
+            keamanan dan privasi data medis.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cara Kerja -->
+  <section class="section" id="cara-kerja"
+    style="background: rgba(255,255,255,0.01); border-top:1px solid var(--border); border-bottom:1px solid var(--border);">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-label">Cara Kerja</span>
+        <h2>Alur Kerja Sistem</h2>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; text-align:center;">
+        <div style="padding:1.5rem;">
+          <div
+            style="width:52px;height:52px; background:rgba(108,125,255,0.12); border:1px solid rgba(108,125,255,0.25); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 1rem; font-size:1.3rem; font-weight:700; color:var(--primary);">
+            1</div>
+          <h3 style="font-size:1rem; margin-bottom:.5rem;">Registrasi Pasien</h3>
+          <p style="font-size:.875rem;">Pasien mendaftarkan akun di platform untuk mendapatkan portal dashboard
+            personal.</p>
+        </div>
+        <div style="padding:1.5rem;">
+          <div
+            style="width:52px;height:52px; background:rgba(108,125,255,0.12); border:1px solid rgba(108,125,255,0.25); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 1rem; font-size:1.3rem; font-weight:700; color:var(--primary);">
+            2</div>
+          <h3 style="font-size:1rem; margin-bottom:.5rem;">Analisis oleh Nakes</h3>
+          <p style="font-size:.875rem;">Tenaga kesehatan menjalankan analisis awal (Random Forest + SHAP + Gemini AI)
+            dan memberikan catatan medis.</p>
+        </div>
+        <div style="padding:1.5rem;">
+          <div
+            style="width:52px;height:52px; background:rgba(108,125,255,0.12); border:1px solid rgba(108,125,255,0.25); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 1rem; font-size:1.3rem; font-weight:700; color:var(--primary);">
+            3</div>
+          <h3 style="font-size:1rem; margin-bottom:.5rem;">Terima Hasil Evaluasi</h3>
+          <p style="font-size:.875rem;">Hasil analisis risiko, probabilitas, dan rekomendasi AI ditampilkan di dashboard
+            pasien secara read-only.</p>
+        </div>
+        <div style="padding:1.5rem;">
+          <div
+            style="width:52px;height:52px; background:rgba(108,125,255,0.12); border:1px solid rgba(108,125,255,0.25); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 1rem; font-size:1.3rem; font-weight:700; color:var(--primary);">
+            4</div>
+          <h3 style="font-size:1rem; margin-bottom:.5rem;">Log Harian & Progres</h3>
+          <p style="font-size:.875rem;">Pasien rutin mencatat kebiasaan harian dan memantau perkembangan grafik Sleep
+            Score mereka.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="section">
+    <div class="container" style="text-align:center;">
+      <div style="max-width:520px; margin:0 auto;">
+        <span style="font-size:3rem;">🌙</span>
+        <h2 style="margin:1rem 0 .75rem;">Siap Tidur Lebih Nyenyak?</h2>
+        <p>Mulai perjalanan menuju tidur yang lebih berkualitas hari ini. Gratis selamanya.</p>
+        <div style="margin-top:2rem; display:flex; gap:1rem; justify-content:center; flex-wrap:wrap;">
+          <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">Buat Akun Sekarang</a>
+          <a href="{{ url_for('login') }}" class="btn btn-outline btn-lg">Login</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer
+    style="border-top:1px solid var(--border); padding:2rem 0; text-align:center; color:var(--text-muted); font-size:.85rem; position:relative; z-index:1;">
+    <div class="container">
+      <p>🌙 AI Sleep Coach &mdash; Dibuat untuk keperluan akademik. Bukan pengganti diagnosis medis.</p>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+
+</html>

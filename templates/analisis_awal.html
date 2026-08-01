@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Riwayat Analisis Medis — AI Sleep Coach</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="{{ url_for('index') }}" class="navbar-brand">
+      <span class="icon">🌙</span>
+      <span>AI Sleep Coach</span>
+    </a>
+    <div class="navbar-nav">
+      <a href="{{ url_for('dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('analisis_awal') }}" class="active">Analisis Medis</a>
+      <a href="{{ url_for('daily_log') }}">Daily Log</a>
+      <a href="{{ url_for('progress') }}">Progress</a>
+      <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm">Keluar</a>
+    </div>
+  </nav>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-container">
+        {% for cat, msg in messages %}
+          <div class="flash flash-{{ cat }}" onclick="this.remove()">
+            <span>{{ '✓' if cat == 'success' else '⚠' }}</span>{{ msg }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <div class="page-wrapper">
+    <div class="container">
+      <div class="page-header">
+        <h1 class="page-title">🩺 Riwayat Analisis Kesehatan Tidur</h1>
+        <p class="page-subtitle">Daftar evaluasi medis & rekomendasi yang telah dibuatkan oleh Tenaga Kesehatan untuk Anda.</p>
+      </div>
+
+      {% if all_analisis %}
+        {% for a in all_analisis %}
+          <div class="card mb-3">
+            <div class="card-header flex-between">
+              <div>
+                <h3 class="card-title">Analisis {{ loop.index }} — {{ a['tanggal'] }}</h3>
+                <p style="font-size:0.82rem; color:var(--text-muted); margin-top:0.2rem;">
+                  Dievaluasi oleh: <strong>{{ a['admin_nama'] or 'Tenaga Kesehatan' }}</strong>
+                </p>
+              </div>
+              <div>
+                {% if a['hasil_prediksi'] == 'None' %}
+                  <span class="badge badge-success" style="font-size:0.9rem; padding:0.4rem 0.8rem;">✅ Tidak Ada Gangguan</span>
+                {% elif a['hasil_prediksi'] == 'Insomnia' %}
+                  <span class="badge badge-warning" style="font-size:0.9rem; padding:0.4rem 0.8rem;">⚠️ Risiko Insomnia</span>
+                {% else %}
+                  <span class="badge badge-danger" style="font-size:0.9rem; padding:0.4rem 0.8rem;">🔴 Risiko Sleep Apnea</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="grid grid-2" style="gap:1.5rem; align-items:start; margin-top:1rem;">
+              <div>
+                <p style="font-size:.85rem; color:var(--text-muted); margin-bottom:.75rem;">Probabilitas Prediksi</p>
+                {% for label, pct in (a['probabilitas_json'] | fromjson).items() %}
+                  <div class="prob-bar-item">
+                    <div class="prob-bar-header">
+                      <span style="color:var(--text-secondary); font-size:.85rem;">{% if label == 'None' %}Normal{% else %}{{ label }}{% endif %}</span>
+                      <span style="font-weight:600;">{{ pct }}%</span>
+                    </div>
+                    <div class="prob-bar-track">
+                      <div class="prob-bar-fill" style="width:{{ pct }}%; background:{% if label == 'None' %}var(--success){% elif label == 'Insomnia' %}var(--warning){% else %}var(--danger){% endif %};"></div>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+
+              <div>
+                {% set input_d = a['input_data_json'] | fromjson %}
+                <p style="font-size:.85rem; color:var(--text-muted); margin-bottom:.5rem;">Ringkasan Parameter Klinis saat Diperiksa</p>
+                <div style="background:var(--surface-light); padding:0.75rem 1rem; border-radius:8px; font-size:0.85rem; display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; color:var(--text-secondary);">
+                  <div>Usia: <strong>{{ input_d['age']|int }} th</strong></div>
+                  <div>Durasi Tidur: <strong>{{ input_d['sleep_duration'] }} jam</strong></div>
+                  <div>Stres: <strong>{{ input_d['stress_level']|int }}/10</strong></div>
+                  <div>Tekanan Darah: <strong>{{ input_d['systolic']|int }}/{{ input_d['diastolic']|int }}</strong></div>
+                </div>
+              </div>
+            </div>
+
+            {% if a['catatan_admin'] %}
+              <div style="background:rgba(108,125,255,0.1); border-left:4px solid var(--primary); padding:0.85rem 1rem; border-radius:8px; margin-top:1.25rem;">
+                <strong style="color:var(--primary); font-size:0.9rem; display:block; margin-bottom:0.25rem;">💬 Catatan Tambahan Tenaga Kesehatan:</strong>
+                <p style="font-size:0.88rem; color:var(--text-primary); margin:0;">{{ a['catatan_admin'] }}</p>
+              </div>
+            {% endif %}
+
+            <div style="background:var(--surface-light); padding:1rem; border-radius:12px; margin-top:1.25rem;">
+              <h4 style="margin-bottom: 0.5rem; color:var(--primary); font-size:0.95rem;">💡 Penjelasan & Rekomendasi (Gemini AI)</h4>
+              <div style="font-size:0.88rem; line-height: 1.6; color:var(--text-secondary); white-space: pre-wrap;">{{ a['penjelasan_gemini'] | render_markdown }}</div>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="card">
+          <div class="empty-state">
+            <div class="empty-icon">🏥</div>
+            <p class="empty-desc">Belum ada riwayat analisis medis yang dibuatkan oleh Tenaga Kesehatan untuk Anda.</p>
+          </div>
+        </div>
+      {% endif %}
+
+    </div>
+  </div>
+</body>
+</html>

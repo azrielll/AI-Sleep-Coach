@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Login Admin ke AI Sleep Coach untuk mengelola pasien.">
+  <title>Login Admin — AI Sleep Coach</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <!-- Flash -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-container">
+        {% for cat, msg in messages %}
+          <div class="flash flash-{{ cat }}" onclick="this.remove()">
+            <span>{{ '✓' if cat == 'success' else '⚠' }}</span>{{ msg }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <div class="auth-page">
+    <!-- Orbs -->
+    <div class="hero-orb hero-orb-1" style="opacity:.5;"></div>
+    <div class="hero-orb hero-orb-2" style="opacity:.5;"></div>
+
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="logo-icon">🩺</div>
+        <a href="{{ url_for('index') }}" style="font-family:'Outfit',sans-serif; font-size:1.4rem; font-weight:700;">
+          <span class="gradient-text">AI Sleep Coach</span>
+        </a>
+      </div>
+
+      <h1 class="auth-title">Portal Tenaga Kesehatan</h1>
+      <p class="auth-subtitle">Masuk untuk mengelola dan memantau data pasien</p>
+
+      <hr class="divider">
+
+      <form method="POST" id="loginForm" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="email">Email Admin</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            class="form-control"
+            placeholder="admin@klinik.com"
+            required
+            autocomplete="email"
+          >
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <div style="position:relative;">
+            <input
+              type="password"
+              id="password"
+              name="password"
+              class="form-control"
+              placeholder="Masukkan password"
+              required
+              autocomplete="current-password"
+              style="padding-right:3rem;"
+            >
+            <button type="button" id="togglePwd" onclick="togglePassword('password','togglePwd')"
+              style="position:absolute;right:.75rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.1rem;">
+              👁
+            </button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full mt-2" id="loginBtn">
+          Masuk ke Dashboard
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script>
+    function togglePassword(inputId, btnId) {
+      const inp = document.getElementById(inputId);
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+    }
+    document.getElementById('loginForm').addEventListener('submit', function() {
+      const btn = document.getElementById('loginBtn');
+      btn.innerHTML = '<span class="spinner"></span> Memproses...';
+      btn.disabled = true;
+    });
+  </script>
+</body>
+</html>

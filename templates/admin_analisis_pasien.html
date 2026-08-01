@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jalankan Analisis Awal — Admin</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <nav class="navbar" style="border-bottom: 2px solid var(--primary);">
+    <a href="{{ url_for('index') }}" class="navbar-brand">
+      <span class="icon">⚕️</span>
+      <span>AI Sleep Coach - Admin</span>
+    </a>
+    <div class="navbar-nav">
+      <a href="{{ url_for('admin_dashboard') }}">Daftar Pasien</a>
+      <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm">Keluar</a>
+    </div>
+  </nav>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-container">
+        {% for cat, msg in messages %}
+          <div class="flash flash-{{ cat }}" onclick="this.remove()">
+            <span>{{ '✓' if cat == 'success' else '⚠' }}</span>{{ msg }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <div class="page-wrapper">
+    <div class="container container-sm">
+      <div class="page-header">
+        <a href="{{ url_for('admin_patient_detail', patient_id=pasien['id']) }}" class="btn btn-ghost btn-sm" style="margin-bottom: 1rem; display:inline-block;">← Kembali ke Detail Pasien</a>
+        <h1 class="page-title">🔬 Analisis Awal Pasien</h1>
+        <p class="page-subtitle">Jalankan evaluasi risiko medis & model Machine Learning untuk <strong>{{ pasien['nama'] }}</strong> ({{ pasien['email'] }}).</p>
+      </div>
+
+      <div class="card">
+        <form method="POST" id="analisisForm">
+          <h3 class="card-title" style="margin-bottom:1.5rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:.5rem;">Data Profil Pasien</h3>
+          
+          <div class="grid grid-2">
+            <div class="form-group">
+              <label class="form-label">Jenis Kelamin</label>
+              <select name="gender" class="form-control {% if errors and errors.gender %}is-invalid{% endif %}" required>
+                <option value="Male" {% if form_data and form_data.gender == 'Male' %}selected{% endif %}>Laki-laki (Male)</option>
+                <option value="Female" {% if form_data and form_data.gender == 'Female' %}selected{% endif %}>Perempuan (Female)</option>
+              </select>
+              {% if errors and errors.gender %}
+                <small class="text-danger mt-1" style="display:block;">{{ errors.gender }}</small>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label class="form-label">Usia (Tahun)</label>
+              <input type="number" name="age" class="form-control {% if errors and errors.age %}is-invalid{% endif %}" placeholder="Contoh: 35" min="1" max="120" value="{{ form_data.age if form_data else '' }}" required>
+              {% if errors and errors.age %}
+                <small class="text-danger mt-1" style="display:block;">{{ errors.age }}</small>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="grid grid-2">
+            <div class="form-group">
+              <label class="form-label">Pekerjaan</label>
+              <select name="occupation" class="form-control {% if errors and errors.occupation %}is-invalid{% endif %}" required>
+                {% for occ in occupations %}
+                  <option value="{{ occ }}" {% if form_data and form_data.occupation == occ %}selected{% endif %}>{{ occ }}</option>
+                {% endfor %}
+              </select>
+              {% if errors and errors.occupation %}
+                <small class="text-danger mt-1" style="display:block;">{{ errors.occupation }}</small>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label class="form-label">Kategori BMI</label>
+              <select name="bmi_category" class="form-control {% if errors and errors.bmi_category %}is-invalid{% endif %}" required>
+                <option value="Normal" {% if form_data and form_data.bmi_category == 'Normal' %}selected{% endif %}>Normal Weight</option>
+                <option value="Overweight" {% if form_data and form_data.bmi_category == 'Overweight' %}selected{% endif %}>Overweight</option>
+                <option value="Obese" {% if form_data and form_data.bmi_category == 'Obese' %}selected{% endif %}>Obese</option>
+              </select>
+              {% if errors and errors.bmi_category %}
+                <small class="text-danger mt-1" style="display:block;">{{ errors.bmi_category }}</small>
+              {% endif %}
+            </div>
+          </div>
+
+          <h3 class="card-title" style="margin-top:1.5rem; margin-bottom:1.5rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:.5rem;">Pola Tidur & Aktivitas</h3>
+
+          <div class="grid grid-2">
+            <div class="form-group">
+              <label class="form-label">Durasi Tidur Rata-rata (Jam)</label>
+              <input type="number" step="0.1" name="sleep_duration" class="form-control {% if errors and errors.sleep_duration %}is-invalid{% endif %}" placeholder="Contoh: 6.5" min="0" max="24" value="{{ form_data.sleep_duration if form_data else '' }}" required>
+              {% if errors and errors.sleep_duration %}
+                <small class="text-danger mt-1" style="display:block;">{{ errors.sleep_duration }}</small>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label class="form-label">Kualitas Tidur (Skala 1-10)</label>
+              <input type="number" name="quality_of_sleep" class="form-control {% if errors and errors.quality_of_sleep %}is-invalid{% endif %}" placeholder="1 = Buruk, 10 = Sangat Baik" min="1" max="10" value="{{ form_data.quality_of_sleep if form_data else '' }}" required>
+              {% if errors and errors.quality_of_sleep %}
+                <small class="text-danger mt-1" style="display:block;">{{ errors.quality_of_sleep }}</small>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="grid grid-2">
+            <div class="form-group">
+              <label class="form-label">Aktivitas Fisik (Menit/Hari)</label>
+              <input type="number" name="physical_activity" class="form-control {% if errors and errors.physical_activity %}is-invalid{% endif %}" placeholder="Contoh: 30" min="0" max="1440" value="{{ form_data.physical_activity if form_data else '' }}" required>
+              {% if errors and errors.physical_activity %}
+                <small class="text-danger mt-1" style="display:block;">{{ errors.physical_activity }}</small>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tingkat Stres (Skala 1-10)</label>
+              <input type="number" name="stress_level" class="form-control {% if errors and errors.stress_level %}is-invalid{% endif %}" placeholder="1 = Rendah, 10 = Sangat Tinggi" min="1" max="10" value="{{ form_data.stress_level if form_data else '' }}" required>
+              {% if errors and errors.stress_level %}
+                <small class="text-danger mt-1" style="display:block;">{{ errors.stress_level }}</small>
+              {% endif %}
+            </div>
+          </div>
+
+          <h3 class="card-title" style="margin-top:1.5rem; margin-bottom:1.5rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:.5rem;">Kesehatan Fisik</h3>
+
+          <div class="grid grid-3">
+            <div class="form-group">
+              <label class="form-label">Detak Jantung (BPM)</label>
+              <input type="number" name="heart_rate" class="form-control {% if errors and errors.heart_rate %}is-invalid{% endif %}" placeholder="Contoh: 72" min="30" max="220" value="{{ form_data.heart_rate if form_data else '' }}" required>
+              {% if errors and errors.heart_rate %}
+                <small class="text-danger mt-1" style="display:block;">{{ errors.heart_rate }}</small>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tekanan Darah Sistolik</label>
+              <input type="number" name="blood_pressure_systolic" class="form-control {% if errors and errors.blood_pressure_systolic %}is-invalid{% endif %}" placeholder="Contoh: 120" min="70" max="200" value="{{ form_data.blood_pressure_systolic if form_data else '' }}" required>
+              {% if errors and errors.blood_pressure_systolic %}
+                <small class="text-danger mt-1" style="display:block;">{{ errors.blood_pressure_systolic }}</small>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tekanan Darah Diastolik</label>
+              <input type="number" name="blood_pressure_diastolic" class="form-control {% if errors and errors.blood_pressure_diastolic %}is-invalid{% endif %}" placeholder="Contoh: 80" min="40" max="130" value="{{ form_data.blood_pressure_diastolic if form_data else '' }}" required>
+              {% if errors and errors.blood_pressure_diastolic %}
+                <small class="text-danger mt-1" style="display:block;">{{ errors.blood_pressure_diastolic }}</small>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Langkah Harian (Daily Steps)</label>
+            <input type="number" name="daily_steps" class="form-control {% if errors and errors.daily_steps %}is-invalid{% endif %}" placeholder="Contoh: 8000" min="0" max="100000" value="{{ form_data.daily_steps if form_data else '' }}" required>
+            {% if errors and errors.daily_steps %}
+              <small class="text-danger mt-1" style="display:block;">{{ errors.daily_steps }}</small>
+            {% endif %}
+          </div>
+
+          <h3 class="card-title" style="margin-top:1.5rem; margin-bottom:1.5rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:.5rem; color:var(--primary);">📝 Catatan Tenaga Kesehatan (Opsional)</h3>
+
+          <div class="form-group">
+            <label class="form-label">Instruksi / Catatan Khusus untuk Pasien</label>
+            <textarea name="catatan_admin" class="form-control" rows="4" placeholder="Tuliskan saran khusus, catatan diagnosa, atau pesan untuk pasien di sini... (Akan ditampilkan di dashboard pasien)">{{ form_data.catatan_admin if form_data else '' }}</textarea>
+          </div>
+
+          <div style="margin-top: 2rem;">
+            <button type="submit" id="submitBtn" class="btn btn-primary btn-full">🚀 Jalankan Analisis & Simpan Hasil</button>
+          </div>
+
+          <!-- Loading Box Indicator -->
+          <div id="loadingBanner" class="card mt-3 hidden" style="background: rgba(108, 125, 255, 0.1); border: 1.5px solid var(--primary); text-align: center; padding: 1.25rem;">
+            <div class="spinner" style="width: 28px; height: 28px; border-width: 3px; margin-bottom: 0.5rem;"></div>
+            <h4 style="color: var(--primary); margin-bottom: 0.3rem;">⏳ Memproses Analisis Medis...</h4>
+            <p style="font-size: 0.88rem; color: var(--text-secondary);">
+              Model Machine Learning & AI Gemini sedang mengevaluasi risiko gangguan tidur pasien. Mohon tunggu beberapa saat...
+            </p>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('analisisForm');
+    if (form) {
+      form.addEventListener('submit', function() {
+        const btn = document.getElementById('submitBtn');
+        const loadingBanner = document.getElementById('loadingBanner');
+        if (btn) {
+          btn.innerHTML = '<span class="spinner"></span> ⏳ Memproses Analisis... Mohon Tunggu';
+          btn.disabled = true;
+          btn.style.opacity = '0.7';
+          btn.style.cursor = 'wait';
+        }
+        if (loadingBanner) {
+          loadingBanner.classList.remove('hidden');
+        }
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Progress Monitoring AI Sleep Coach — lihat tren kualitas tidurmu.">
+  <title>Progress Monitoring — AI Sleep Coach</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="{{ url_for('index') }}" class="navbar-brand">
+      <span class="icon">🌙</span>
+      <span>AI Sleep Coach</span>
+    </a>
+    <div class="navbar-nav">
+      <a href="{{ url_for('dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('analisis_awal') }}">Analisis Medis</a>
+      <a href="{{ url_for('daily_log') }}">Log Harian</a>
+      <a href="{{ url_for('progress') }}" class="active">Perkembangan Tidur</a>
+      <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm">Keluar</a>
+    </div>
+  </nav>
+
+  <div class="page-wrapper">
+    <div class="container">
+      <div class="page-header flex-between" style="flex-wrap:wrap; gap:1rem;">
+        <div>
+          <h1 class="page-title">📈 Perkembangan Tidur</h1>
+          <p class="page-subtitle">Pantau riwayat Skor Tidur dan tren harianmu</p>
+        </div>
+        <div>
+          <form method="GET" action="{{ url_for('progress') }}" style="display:flex; gap:.5rem;">
+            <select name="periode" class="form-select" onchange="this.form.submit()" style="min-width:140px; padding:.5rem;">
+              <option value="7" {% if periode == 7 %}selected{% endif %}>7 Hari Terakhir</option>
+              <option value="14" {% if periode == 14 %}selected{% endif %}>14 Hari Terakhir</option>
+              <option value="30" {% if periode == 30 %}selected{% endif %}>30 Hari Terakhir</option>
+            </select>
+          </form>
+        </div>
+      </div>
+
+      {% if logs %}
+        <!-- Stats Row -->
+        <div class="grid grid-4 mb-3">
+          <div class="card stat-card">
+            <span class="stat-icon">📊</span>
+            <div class="stat-value text-primary-color">{{ "%.1f" | format(stats['avg_score']) }}</div>
+            <div class="stat-desc">Rata-rata Skor</div>
+          </div>
+          <div class="card stat-card">
+            <span class="stat-icon">📈</span>
+            <div class="stat-value text-success">{{ stats['max_score'] }}</div>
+            <div class="stat-desc">Skor Tertinggi</div>
+          </div>
+          <div class="card stat-card">
+            <span class="stat-icon">📉</span>
+            <div class="stat-value text-danger">{{ stats['min_score'] }}</div>
+            <div class="stat-desc">Skor Terendah</div>
+          </div>
+          <div class="card stat-card">
+            <span class="stat-icon">📅</span>
+            <div class="stat-value">{{ stats['total'] }}</div>
+            <div class="stat-desc">Hari Tercatat</div>
+          </div>
+        </div>
+
+        <!-- Main Chart -->
+        <div class="card mb-3">
+          <div class="card-header">
+            <h3 class="card-title">📉 Tren Kualitas Tidur ({{ periode }} Hari)</h3>
+          </div>
+          <div style="height:350px;">
+            <canvas id="progressChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Riwayat Table -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">📋 Riwayat Detail</h3>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tanggal</th>
+                  <th>Skor</th>
+                  <th>Kategori</th>
+                  <th>Jam Tidur</th>
+                  <th>Jam Bangun</th>
+                  <th>Stres</th>
+                  <th>Kafein</th>
+                  <th>Olahraga</th>
+                  <th>Screen Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in logs | reverse %}
+                  <tr>
+                    <td style="font-weight:500;">{{ row['tanggal'] }}</td>
+                    <td style="font-weight:700;">{{ row['sleep_score'] }}</td>
+                    <td>
+                      <span class="badge {% if row['kategori'] == 'Baik' %}badge-success{% elif row['kategori'] == 'Cukup' %}badge-warning{% else %}badge-danger{% endif %}" style="padding:.1rem .5rem; font-size:.75rem;">
+                        {{ row['kategori'] }}
+                      </span>
+                    </td>
+                    <td>{{ row['jam_mulai_tidur'] }}</td>
+                    <td>{{ row['jam_bangun'] }}</td>
+                    <td>{{ row['tingkat_stres'] }}/10</td>
+                    <td>{{ row['konsumsi_kafein'] }}</td>
+                    <td>{{ row['durasi_olahraga'] }} mnt</td>
+                    <td>{{ row['durasi_layar'] }} mnt</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      {% else %}
+        <div class="card empty-state">
+          <div class="empty-icon">📉</div>
+          <h2 class="empty-title">Belum Ada Data Progress</h2>
+          <p class="empty-desc">Kamu belum mengisi Daily Log untuk periode ini. Yuk catat kualitas tidurmu hari ini!</p>
+          <a href="{{ url_for('daily_log') }}" class="btn btn-primary">📝 Isi Daily Log Sekarang</a>
+        </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+  <script>
+    {% if logs %}
+    const chartData = JSON.parse('{{ chart_data | safe }}');
+    const ctx = document.getElementById('progressChart').getContext('2d');
+    
+    // Gradien untuk area chart
+    const gradient = ctx.createLinearGradient(0, 0, 0, 350);
+    gradient.addColorStop(0, 'rgba(108,125,255,0.4)');
+    gradient.addColorStop(1, 'rgba(108,125,255,0.0)');
+
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: chartData.labels,
+        datasets: [{
+          label: 'Sleep Score',
+          data: chartData.scores,
+          borderColor: '#6c7dff',
+          backgroundColor: gradient,
+          borderWidth: 3,
+          pointBackgroundColor: '#141c35',
+          pointBorderColor: '#6c7dff',
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#141c35',
+            borderColor: 'rgba(108,125,255,0.3)',
+            borderWidth: 1,
+            titleColor: '#e8eaf6',
+            bodyColor: '#e8eaf6',
+            titleFont: { size: 14, family: 'Inter' },
+            bodyFont: { size: 16, weight: 'bold', family: 'Inter' },
+            padding: 12,
+            displayColors: false,
+            callbacks: {
+              label: function(context) {
+                const idx = context.dataIndex;
+                const cat = chartData.kategori[idx];
+                return 'Score: ' + context.parsed.y + ' (' + cat + ')';
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            min: 0, max: 100,
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            ticks: { color: '#8b95c9', font: { size: 12, family: 'Inter' } }
+          },
+          x: {
+            grid: { color: 'rgba(255,255,255,0.02)' },
+            ticks: { color: '#8b95c9', font: { size: 12, family: 'Inter' } }
+          }
+        }
+      }
+    });
+    {% endif %}
+  </script>
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

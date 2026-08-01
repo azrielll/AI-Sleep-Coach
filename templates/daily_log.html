@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Daily Log AI Sleep Coach — Catat kebiasaan tidur harianmu.">
+  <title>Daily Log — AI Sleep Coach</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="{{ url_for('index') }}" class="navbar-brand">
+      <span class="icon">🌙</span>
+      <span>AI Sleep Coach</span>
+    </a>
+    <div class="navbar-nav">
+      <a href="{{ url_for('dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('analisis_awal') }}">Analisis Medis</a>
+      <a href="{{ url_for('daily_log') }}" class="active">Log Harian</a>
+      <a href="{{ url_for('progress') }}">Perkembangan Tidur</a>
+      <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm">Keluar</a>
+    </div>
+  </nav>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-container">
+        {% for cat, msg in messages %}
+          <div class="flash flash-{{ cat }}" onclick="this.remove()">
+            <span>⚠</span>{{ msg }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <div class="page-wrapper">
+    <div class="container container-md">
+      <div class="page-header">
+        <h1 class="page-title">📝 Log Harian</h1>
+        <p class="page-subtitle">Catat kebiasaan tidur harianmu dan dapatkan Skor Tidur</p>
+      </div>
+
+      {% if not hasil %}
+      <!-- FORM -->
+      <form method="POST" id="logForm">
+        <div class="card mb-3">
+          <div class="card-header">
+            <h3 class="card-title">📅 Data Hari Ini</h3>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="tanggal">Tanggal Log</label>
+            <input type="date" id="tanggal" name="tanggal" class="form-control {% if errors and errors.tanggal %}is-invalid{% endif %}" value="{{ form_data.tanggal if form_data else today }}" required>
+            {% if errors and errors.tanggal %}
+              <small class="text-danger mt-1" style="display:block;">{{ errors.tanggal }}</small>
+            {% endif %}
+          </div>
+          <hr class="divider">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="jam_mulai_tidur">Jam Mulai Tidur</label>
+              <input type="time" id="jam_mulai_tidur" name="jam_mulai_tidur" class="form-control {% if errors and errors.jam_mulai_tidur %}is-invalid{% endif %}" value="{{ form_data.jam_mulai_tidur if form_data else '' }}" required>
+              {% if errors and errors.jam_mulai_tidur %}
+                <small class="text-danger mt-1" style="display:block;">{{ errors.jam_mulai_tidur }}</small>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="jam_bangun">Jam Bangun</label>
+              <input type="time" id="jam_bangun" name="jam_bangun" class="form-control {% if errors and errors.jam_bangun %}is-invalid{% endif %}" value="{{ form_data.jam_bangun if form_data else '' }}" required>
+              {% if errors and errors.jam_bangun %}
+                <small class="text-danger mt-1" style="display:block;">{{ errors.jam_bangun }}</small>
+              {% endif %}
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="tingkat_stres">Tingkat Stres (1-10)</label>
+              <input type="number" id="tingkat_stres" name="tingkat_stres" class="form-control {% if errors and errors.tingkat_stres %}is-invalid{% endif %}" min="1" max="10" placeholder="cth: 5" value="{{ form_data.tingkat_stres if form_data else '' }}" required>
+              {% if errors and errors.tingkat_stres %}
+                <small class="text-danger mt-1" style="display:block;">{{ errors.tingkat_stres }}</small>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="konsumsi_kafein">Konsumsi Kafein (cangkir/porsi)</label>
+              <input type="number" id="konsumsi_kafein" name="konsumsi_kafein" class="form-control {% if errors and errors.konsumsi_kafein %}is-invalid{% endif %}" min="0" placeholder="cth: 2" value="{{ form_data.konsumsi_kafein if form_data else '' }}" required>
+              {% if errors and errors.konsumsi_kafein %}
+                <small class="text-danger mt-1" style="display:block;">{{ errors.konsumsi_kafein }}</small>
+              {% endif %}
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="durasi_olahraga">Durasi Olahraga (menit)</label>
+              <input type="number" id="durasi_olahraga" name="durasi_olahraga" class="form-control {% if errors and errors.durasi_olahraga %}is-invalid{% endif %}" min="0" placeholder="cth: 30" value="{{ form_data.durasi_olahraga if form_data else '' }}" required>
+              {% if errors and errors.durasi_olahraga %}
+                <small class="text-danger mt-1" style="display:block;">{{ errors.durasi_olahraga }}</small>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="durasi_layar">Screen Time Sebelum Tidur (menit)</label>
+              <input type="number" id="durasi_layar" name="durasi_layar" class="form-control {% if errors and errors.durasi_layar %}is-invalid{% endif %}" min="0" placeholder="cth: 60" value="{{ form_data.durasi_layar if form_data else '' }}" required>
+              {% if errors and errors.durasi_layar %}
+                <small class="text-danger mt-1" style="display:block;">{{ errors.durasi_layar }}</small>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+          <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+            Simpan Daily Log
+          </button>
+          <a href="{{ url_for('dashboard') }}" class="btn btn-ghost btn-lg">Batal</a>
+        </div>
+      </form>
+
+      {% else %}
+      <!-- HASIL / SUMMARY -->
+      <div class="result-hero {% if kategori == 'Baik' %}none{% elif kategori == 'Cukup' %}insomnia{% else %}apnea{% endif %}">
+        <p style="color:var(--text-secondary); margin-bottom:.5rem;">Sleep Score ({{ today }})</p>
+        <div class="score-ring mb-2">
+          <svg width="160" height="160" viewBox="0 0 160 160">
+            <!-- Background circle -->
+            <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8" />
+            <!-- Progress circle -->
+            <circle cx="80" cy="80" r="70" fill="none" stroke="{% if kategori == 'Baik' %}var(--success){% elif kategori == 'Cukup' %}var(--warning){% else %}var(--danger){% endif %}" stroke-width="8" stroke-dasharray="439.8" stroke-dashoffset="{{ 439.8 - (sleep_score / 100 * 439.8) }}" stroke-linecap="round" />
+          </svg>
+          <div class="score-text">
+            <div class="score-number">{{ sleep_score }}</div>
+            <div class="score-label">/ 100</div>
+          </div>
+        </div>
+        <div class="result-label">
+          Kategori: <span class="{% if kategori == 'Baik' %}text-success{% elif kategori == 'Cukup' %}text-warning{% else %}text-danger{% endif %}">{{ kategori }}</span>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header">
+          <h3 class="card-title">🔍 Rincian Penilaian (0-100)</h3>
+        </div>
+        <div>
+          <div class="breakdown-item">
+            <div class="breakdown-label"><span>🕒</span> Jam Mulai Tidur ({{ input_data.jam_mulai }})</div>
+            <div class="breakdown-score">{{ detail.skor_mulai }}</div>
+          </div>
+          <div class="breakdown-item">
+            <div class="breakdown-label"><span>⏰</span> Jam Bangun ({{ input_data.jam_bangun }})</div>
+            <div class="breakdown-score">{{ detail.skor_bangun }}</div>
+          </div>
+          <div class="breakdown-item">
+            <div class="breakdown-label"><span>🧘</span> Tingkat Stres ({{ input_data.stres }}/10)</div>
+            <div class="breakdown-score">{{ detail.skor_stres }}</div>
+          </div>
+          <div class="breakdown-item">
+            <div class="breakdown-label"><span>☕</span> Kafein ({{ input_data.kafein }} porsi)</div>
+            <div class="breakdown-score">{{ detail.skor_kafein }}</div>
+          </div>
+          <div class="breakdown-item">
+            <div class="breakdown-label"><span>🏃</span> Olahraga ({{ input_data.olahraga }} mnt)</div>
+            <div class="breakdown-score">{{ detail.skor_olahraga }}</div>
+          </div>
+          <div class="breakdown-item">
+            <div class="breakdown-label"><span>📱</span> Screen Time ({{ input_data.layar }} mnt)</div>
+            <div class="breakdown-score">{{ detail.skor_layar }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+        <a href="{{ url_for('progress') }}" class="btn btn-primary">Lihat Progress</a>
+        <a href="{{ url_for('daily_log') }}" class="btn btn-outline">Edit Log Hari Ini</a>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-ghost">← Kembali</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('logForm');
+    if (form) {
+      form.addEventListener('submit', function() {
+        const btn = document.getElementById('submitBtn');
+        btn.innerHTML = '<span class="spinner"></span> Menyimpan...';
+        btn.disabled = true;
+      });
+    }
+  </script>
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
