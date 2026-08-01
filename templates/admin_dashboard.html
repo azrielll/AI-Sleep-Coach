@@ -39,8 +39,9 @@
       </div>
 
       <div class="card">
-        <div class="card-header">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
           <h3 class="card-title">👥 Daftar Pasien</h3>
+          <a href="{{ url_for('admin_create_account') }}" class="btn btn-primary btn-sm">+ Tambah Akun Baru</a>
         </div>
         <div style="overflow-x:auto;">
           <table style="width:100%; border-collapse: collapse; text-align:left;">

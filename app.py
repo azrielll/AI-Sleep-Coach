@@ -233,6 +233,48 @@ def logout():
     flash('Kamu telah keluar.', 'info')
     return redirect(url_for('index'))
 
+@app.route('/admin/create_account', methods=['GET', 'POST'])
+@login_required
+@role_required('admin')
+def admin_create_account():
+    if request.method == 'POST':
+        role     = request.form.get('role', 'pasien')
+        nama     = request.form.get('nama', '').strip()
+        email    = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+        confirm  = request.form.get('confirm_password', '')
+
+        if not nama or not email or not password or not role:
+            flash('Semua field wajib diisi.', 'error')
+            return render_template('admin_create_account.html')
+        
+        if role not in ['admin', 'pasien']:
+            flash('Role tidak valid.', 'error')
+            return render_template('admin_create_account.html')
+
+        if password != confirm:
+            flash('Password tidak cocok.', 'error')
+            return render_template('admin_create_account.html')
+            
+        if len(password) < 6:
+            flash('Password minimal 6 karakter.', 'error')
+            return render_template('admin_create_account.html')
+            
+        pwd_hash = generate_password_hash(password)
+        
+        try:
+            with get_db() as conn:
+                conn.execute(
+                    'INSERT INTO users (nama, email, password_hash, role) VALUES (?, ?, ?, ?)',
+                    (nama, email, pwd_hash, role)
+                )
+            flash(f'Akun {role.capitalize()} baru atas nama {nama} berhasil dibuat!', 'success')
+            return redirect(url_for('admin_dashboard'))
+        except sqlite3.IntegrityError:
+            flash('Error: Email tersebut sudah terdaftar di sistem.', 'error')
+            
+    return render_template('admin_create_account.html')
+
 # ══════════════════════════════════════════════════════════════════════════════
 # DASHBOARD
 # ══════════════════════════════════════════════════════════════════════════════
