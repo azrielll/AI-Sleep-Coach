@@ -16,6 +16,9 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
+# Ensure tables are created first by importing app
+import app
+
 def create_admin(email, password, nama):
     try:
         with get_db() as conn:
