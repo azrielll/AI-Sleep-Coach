@@ -101,6 +101,20 @@ def init_db():
                 FOREIGN KEY (created_by_admin_id) REFERENCES users(id)
             );
         ''')
+        
+        # Auto-create default admin if none exists
+        admin_exists = conn.execute("SELECT id FROM users WHERE role = 'admin' LIMIT 1").fetchone()
+        if not admin_exists:
+            from werkzeug.security import generate_password_hash
+            default_email = "admin@klinik.com"
+            default_pwd = generate_password_hash("admin123")
+            try:
+                conn.execute(
+                    "INSERT INTO users (nama, email, password_hash, role) VALUES (?, ?, ?, ?)",
+                    ("Admin Klinik", default_email, default_pwd, "admin")
+                )
+            except sqlite3.IntegrityError:
+                pass
 
 init_db()
 
