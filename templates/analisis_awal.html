@@ -81,7 +81,7 @@
               <div>
                 {% set input_d = a['input_data_json'] | fromjson %}
                 <p style="font-size:.85rem; color:var(--text-muted); margin-bottom:.5rem;">Ringkasan Parameter Klinis saat Diperiksa</p>
-                <div style="background:var(--surface-light); padding:0.75rem 1rem; border-radius:8px; font-size:0.85rem; display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; color:var(--text-secondary);">
+                <div class="grid grid-2" style="background:var(--surface-light); padding:0.75rem 1rem; border-radius:8px; font-size:0.85rem; gap:0.5rem; color:var(--text-secondary);">
                   <div>Usia: <strong>{{ input_d['age']|int }} th</strong></div>
                   <div>Durasi Tidur: <strong>{{ input_d['sleep_duration'] }} jam</strong></div>
                   <div>Stres: <strong>{{ input_d['stress_level']|int }}/10</strong></div>
