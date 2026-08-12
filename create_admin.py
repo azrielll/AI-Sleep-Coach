@@ -23,9 +23,10 @@ def create_admin(email, password, nama):
     try:
         with get_db() as conn:
             pwd_hash = generate_password_hash(password)
+            new_id = app.generate_id_users(conn)
             conn.execute(
-                'INSERT INTO users (nama, email, password_hash, role) VALUES (?, ?, ?, ?)',
-                (nama, email, pwd_hash, 'admin')
+                'INSERT INTO users (id_users, nama_users, email, password_hash, role) VALUES (?, ?, ?, ?, ?)',
+                (new_id, nama, email, pwd_hash, 'admin')
             )
         print(f"Akun admin berhasil dibuat:\nEmail: {email}\nNama: {nama}")
     except sqlite3.IntegrityError:

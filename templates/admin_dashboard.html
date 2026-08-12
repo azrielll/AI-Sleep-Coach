@@ -57,7 +57,7 @@
             <tbody>
               {% for p in pasien_list %}
               <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                <td style="padding: 1rem; font-weight:600;">{{ p['nama'] }}</td>
+                <td style="padding: 1rem; font-weight:600;">{{ p['nama_users'] }}</td>
                 <td style="padding: 1rem; color:var(--text-muted);">{{ p['email'] }}</td>
                 <td style="padding: 1rem; color:var(--text-muted);">{{ p['created_at'].split(' ')[0] }}</td>
                 <td style="padding: 1rem;">
@@ -74,7 +74,7 @@
                   {% endif %}
                 </td>
                 <td style="padding: 1rem;">
-                  <a href="{{ url_for('admin_patient_detail', patient_id=p['id']) }}" class="btn btn-outline btn-sm">Lihat Detail</a>
+                  <a href="{{ url_for('admin_patient_detail', patient_id=p['id_users']) }}" class="btn btn-outline btn-sm">Lihat Detail</a>
                 </td>
               </tr>
               {% else %}

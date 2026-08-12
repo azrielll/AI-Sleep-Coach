@@ -36,11 +36,11 @@
       <div class="page-header flex-between" style="margin-bottom: 1.5rem; flex-wrap:wrap; gap:1rem;">
         <div>
           <a href="{{ url_for('admin_dashboard') }}" class="btn btn-ghost btn-sm" style="margin-bottom: .5rem; display:inline-block;">← Kembali</a>
-          <h1 class="page-title">Detail Pasien: {{ pasien['nama'] }}</h1>
+          <h1 class="page-title">Detail Pasien: {{ pasien['nama_users'] }}</h1>
           <p class="page-subtitle">{{ pasien['email'] }} | Terdaftar: {{ pasien['created_at'].split(' ')[0] }}</p>
         </div>
         <div>
-          <a href="{{ url_for('admin_analisis_pasien', patient_id=pasien['id']) }}" class="btn btn-primary">
+          <a href="{{ url_for('admin_analisis_pasien', patient_id=pasien['id_users']) }}" class="btn btn-primary">
             🔬 ➕ Jalankan Analisis Baru
           </a>
         </div>
@@ -113,7 +113,7 @@
           {% else %}
             <div class="empty-state">
               <p class="empty-desc">Pasien ini belum memiliki riwayat analisis awal.</p>
-              <a href="{{ url_for('admin_analisis_pasien', patient_id=pasien['id']) }}" class="btn btn-primary btn-sm mt-2">Jalankan Analisis Pertama</a>
+              <a href="{{ url_for('admin_analisis_pasien', patient_id=pasien['id_users']) }}" class="btn btn-primary btn-sm mt-2">Jalankan Analisis Pertama</a>
             </div>
           {% endif %}
         </div>

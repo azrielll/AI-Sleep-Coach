@@ -33,9 +33,9 @@
   <div class="page-wrapper">
     <div class="container container-sm">
       <div class="page-header">
-        <a href="{{ url_for('admin_patient_detail', patient_id=pasien['id']) }}" class="btn btn-ghost btn-sm" style="margin-bottom: 1rem; display:inline-block;">← Kembali ke Detail Pasien</a>
+        <a href="{{ url_for('admin_patient_detail', patient_id=pasien['id_users']) }}" class="btn btn-ghost btn-sm" style="margin-bottom: 1rem; display:inline-block;">← Kembali ke Detail Pasien</a>
         <h1 class="page-title">🔬 Analisis Awal Pasien</h1>
-        <p class="page-subtitle">Jalankan evaluasi risiko medis & model Machine Learning untuk <strong>{{ pasien['nama'] }}</strong> ({{ pasien['email'] }}).</p>
+        <p class="page-subtitle">Jalankan evaluasi risiko medis & model Machine Learning untuk <strong>{{ pasien['nama_users'] }}</strong> ({{ pasien['email'] }}).</p>
       </div>
 
       <div class="card">

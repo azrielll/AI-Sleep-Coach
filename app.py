@@ -56,25 +56,59 @@ DATABASE_NAME = os.getenv('DATABASE_PATH', 'database.db')
 DATABASE      = os.path.join(BASE_DIR, DATABASE_NAME) if not os.path.isabs(DATABASE_NAME) else DATABASE_NAME
 
 # ── Database ─────────────────────────────────────────────────────────────────
+# ── Database ─────────────────────────────────────────────────────────────────
 def get_db():
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     return conn
 
+def generate_id_users(conn):
+    row = conn.execute("SELECT id_users FROM users ORDER BY id_users DESC LIMIT 1").fetchone()
+    if not row:
+        return "USR0001"
+    last_id = row['id_users']
+    try:
+        num = int(last_id[3:]) + 1
+    except ValueError:
+        num = 1
+    return f"USR{num:04d}"
+
+def generate_id_logs(conn):
+    row = conn.execute("SELECT id_logs FROM log_harian ORDER BY id_logs DESC LIMIT 1").fetchone()
+    if not row:
+        return "LGS0001"
+    last_id = row['id_logs']
+    try:
+        num = int(last_id[3:]) + 1
+    except ValueError:
+        num = 1
+    return f"LGS{num:04d}"
+
+def generate_id_analisis(conn):
+    row = conn.execute("SELECT id_analisis FROM analisis_awal ORDER BY id_analisis DESC LIMIT 1").fetchone()
+    if not row:
+        return "ANL0001"
+    last_id = row['id_analisis']
+    try:
+        num = int(last_id[3:]) + 1
+    except ValueError:
+        num = 1
+    return f"ANL{num:04d}"
+
 def init_db():
     with get_db() as conn:
         conn.executescript('''
             CREATE TABLE IF NOT EXISTS users (
-                id           INTEGER PRIMARY KEY AUTOINCREMENT,
-                nama         TEXT    NOT NULL,
+                id_users     TEXT PRIMARY KEY,
+                nama_users   TEXT    NOT NULL,
                 email        TEXT    NOT NULL UNIQUE,
                 password_hash TEXT   NOT NULL,
                 role         TEXT    DEFAULT 'pasien',
                 created_at   TEXT    DEFAULT (datetime('now','localtime'))
             );
-            CREATE TABLE IF NOT EXISTS daily_logs (
-                id               INTEGER PRIMARY KEY AUTOINCREMENT,
-                patient_id       INTEGER NOT NULL,
+            CREATE TABLE IF NOT EXISTS log_harian (
+                id_logs          TEXT PRIMARY KEY,
+                id_users         TEXT NOT NULL,
                 tanggal          TEXT    NOT NULL,
                 jam_mulai_tidur  TEXT    NOT NULL,
                 jam_bangun       TEXT    NOT NULL,
@@ -84,12 +118,12 @@ def init_db():
                 durasi_layar     INTEGER NOT NULL,
                 sleep_score      REAL    NOT NULL,
                 kategori         TEXT    NOT NULL,
-                FOREIGN KEY (patient_id) REFERENCES users(id)
+                FOREIGN KEY (id_users) REFERENCES users(id_users)
             );
             CREATE TABLE IF NOT EXISTS analisis_awal (
-                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-                patient_id          INTEGER NOT NULL,
-                created_by_admin_id INTEGER,
+                id_analisis         TEXT PRIMARY KEY,
+                patient_id          TEXT NOT NULL,
+                created_by_admin_id TEXT,
                 tanggal             TEXT    NOT NULL,
                 input_data_json     TEXT    NOT NULL,
                 hasil_prediksi      TEXT    NOT NULL,
@@ -97,21 +131,22 @@ def init_db():
                 shap_values_json    TEXT    NOT NULL,
                 penjelasan_gemini   TEXT,
                 catatan_admin       TEXT,
-                FOREIGN KEY (patient_id) REFERENCES users(id),
-                FOREIGN KEY (created_by_admin_id) REFERENCES users(id)
+                FOREIGN KEY (patient_id) REFERENCES users(id_users),
+                FOREIGN KEY (created_by_admin_id) REFERENCES users(id_users)
             );
         ''')
         
         # Auto-create default admin if none exists
-        admin_exists = conn.execute("SELECT id FROM users WHERE role = 'admin' LIMIT 1").fetchone()
+        admin_exists = conn.execute("SELECT id_users FROM users WHERE role = 'admin' LIMIT 1").fetchone()
         if not admin_exists:
             from werkzeug.security import generate_password_hash
             default_email = "admin@klinik.com"
             default_pwd = generate_password_hash("admin123")
             try:
+                new_id = generate_id_users(conn)
                 conn.execute(
-                    "INSERT INTO users (nama, email, password_hash, role) VALUES (?, ?, ?, ?)",
-                    ("Admin Klinik", default_email, default_pwd, "admin")
+                    "INSERT INTO users (id_users, nama_users, email, password_hash, role) VALUES (?, ?, ?, ?, ?)",
+                    (new_id, "Admin Klinik", default_email, default_pwd, "admin")
                 )
             except sqlite3.IntegrityError:
                 pass
@@ -179,9 +214,10 @@ def register():
         pwd_hash = generate_password_hash(password)
         try:
             with get_db() as conn:
+                new_id = generate_id_users(conn)
                 conn.execute(
-                    'INSERT INTO users (nama, email, password_hash, role) VALUES (?, ?, ?, ?)',
-                    (nama, email, pwd_hash, 'pasien')
+                    'INSERT INTO users (id_users, nama_users, email, password_hash, role) VALUES (?, ?, ?, ?, ?)',
+                    (new_id, nama, email, pwd_hash, 'pasien')
                 )
             flash('Registrasi berhasil! Silakan login.', 'success')
             return redirect(url_for('login'))
@@ -207,10 +243,10 @@ def login():
                 flash('Akun ini adalah akun tenaga kesehatan, silakan login lewat halaman admin.', 'error')
                 return render_template('login.html')
             
-            session['user_id'] = user['id']
-            session['user_nama'] = user['nama']
+            session['user_id'] = user['id_users']
+            session['user_nama'] = user['nama_users']
             session['role'] = user['role']
-            flash(f'Selamat datang, {user["nama"]}!', 'success')
+            flash(f'Selamat datang, {user["nama_users"]}!', 'success')
             return redirect(url_for('dashboard'))
         flash('Email atau password salah.', 'error')
     return render_template('login.html')
@@ -233,10 +269,10 @@ def admin_login():
                 flash('Akun ini bukan akun tenaga kesehatan, silakan login lewat halaman pasien.', 'error')
                 return render_template('admin_login.html')
             
-            session['user_id'] = user['id']
-            session['user_nama'] = user['nama']
+            session['user_id'] = user['id_users']
+            session['user_nama'] = user['nama_users']
             session['role'] = user['role']
-            flash(f'Selamat datang, {user["nama"]}!', 'success')
+            flash(f'Selamat datang, {user["nama_users"]}!', 'success')
             return redirect(url_for('admin_dashboard'))
         flash('Email atau password salah.', 'error')
     return render_template('admin_login.html')
@@ -278,9 +314,10 @@ def admin_create_account():
         
         try:
             with get_db() as conn:
+                new_id = generate_id_users(conn)
                 conn.execute(
-                    'INSERT INTO users (nama, email, password_hash, role) VALUES (?, ?, ?, ?)',
-                    (nama, email, pwd_hash, role)
+                    'INSERT INTO users (id_users, nama_users, email, password_hash, role) VALUES (?, ?, ?, ?, ?)',
+                    (new_id, nama, email, pwd_hash, role)
                 )
             flash(f'Akun {role.capitalize()} baru atas nama {nama} berhasil dibuat!', 'success')
             return redirect(url_for('admin_dashboard'))
@@ -301,19 +338,19 @@ def dashboard():
     with get_db() as conn:
         # Sleep score terbaru
         latest_log = conn.execute(
-            '''SELECT * FROM daily_logs WHERE patient_id = ?
+            '''SELECT * FROM log_harian WHERE id_users = ?
                ORDER BY tanggal DESC LIMIT 1''', (uid,)
         ).fetchone()
         # 7 hari terakhir untuk mini chart
         logs_7 = conn.execute(
-            '''SELECT tanggal, sleep_score, kategori FROM daily_logs
-               WHERE patient_id = ? ORDER BY tanggal DESC LIMIT 7''', (uid,)
+            '''SELECT tanggal, sleep_score, kategori FROM log_harian
+               WHERE id_users = ? ORDER BY tanggal DESC LIMIT 7''', (uid,)
         ).fetchall()
         # Analisis dari tenaga kesehatan (semua riwayat, paling baru di atas)
         all_analisis = conn.execute(
-            '''SELECT a.*, u.nama as admin_nama 
+            '''SELECT a.*, u.nama_users as admin_nama 
                FROM analisis_awal a
-               LEFT JOIN users u ON a.created_by_admin_id = u.id
+               LEFT JOIN users u ON a.created_by_admin_id = u.id_users
                WHERE a.patient_id = ?
                ORDER BY a.tanggal DESC''', (uid,)
         ).fetchall()
@@ -323,7 +360,7 @@ def dashboard():
 
         # Jumlah total log
         total_logs = conn.execute(
-            'SELECT COUNT(*) as cnt FROM daily_logs WHERE patient_id = ?', (uid,)
+            'SELECT COUNT(*) as cnt FROM log_harian WHERE id_users = ?', (uid,)
         ).fetchone()['cnt']
     return render_template('dashboard.html',
                            latest_log=latest_log,
@@ -343,9 +380,9 @@ def analisis_awal():
     uid = session['user_id']
     with get_db() as conn:
         all_analisis = conn.execute(
-            '''SELECT a.*, u.nama as admin_nama 
+            '''SELECT a.*, u.nama_users as admin_nama 
                FROM analisis_awal a
-               LEFT JOIN users u ON a.created_by_admin_id = u.id
+               LEFT JOIN users u ON a.created_by_admin_id = u.id_users
                WHERE a.patient_id = ?
                ORDER BY a.tanggal DESC''', (uid,)
         ).fetchall()
@@ -493,26 +530,27 @@ def daily_log():
         with get_db() as conn:
             # Cek apakah sudah ada log hari ini
             existing = conn.execute(
-                'SELECT id FROM daily_logs WHERE patient_id = ? AND tanggal = ?',
+                'SELECT id_logs FROM log_harian WHERE id_users = ? AND tanggal = ?',
                 (session['user_id'], tanggal)
             ).fetchone()
             if existing:
                 conn.execute(
-                    '''UPDATE daily_logs SET jam_mulai_tidur=?, jam_bangun=?,
+                    '''UPDATE log_harian SET jam_mulai_tidur=?, jam_bangun=?,
                        tingkat_stres=?, konsumsi_kafein=?, durasi_olahraga=?,
                        durasi_layar=?, sleep_score=?, kategori=?
-                       WHERE patient_id=? AND tanggal=?''',
+                       WHERE id_users=? AND tanggal=?''',
                     (jam_mulai, jam_bangun, stres, kafein, olahraga, layar,
                      sleep_score, kategori, session['user_id'], tanggal)
                 )
             else:
+                new_log_id = generate_id_logs(conn)
                 conn.execute(
-                    '''INSERT INTO daily_logs
-                       (patient_id, tanggal, jam_mulai_tidur, jam_bangun,
+                    '''INSERT INTO log_harian
+                       (id_logs, id_users, tanggal, jam_mulai_tidur, jam_bangun,
                         tingkat_stres, konsumsi_kafein, durasi_olahraga,
                         durasi_layar, sleep_score, kategori)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                    (session['user_id'], tanggal, jam_mulai, jam_bangun,
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                    (new_log_id, session['user_id'], tanggal, jam_mulai, jam_bangun,
                      stres, kafein, olahraga, layar, sleep_score, kategori)
                 )
 
@@ -556,8 +594,8 @@ def progress():
             '''SELECT tanggal, sleep_score, kategori, jam_mulai_tidur,
                       jam_bangun, tingkat_stres, konsumsi_kafein,
                       durasi_olahraga, durasi_layar
-               FROM daily_logs
-               WHERE patient_id = ?
+               FROM log_harian
+               WHERE id_users = ?
                  AND tanggal >= date('now', ?, 'localtime')
                ORDER BY tanggal ASC''',
             (uid, f'-{periode} days')
@@ -568,8 +606,8 @@ def progress():
                       MAX(sleep_score) as max_score,
                       MIN(sleep_score) as min_score,
                       COUNT(*) as total
-               FROM daily_logs
-               WHERE patient_id = ?
+               FROM log_harian
+               WHERE id_users = ?
                  AND tanggal >= date('now', ?, 'localtime')''',
             (uid, f'-{periode} days')
         ).fetchone()
@@ -596,28 +634,28 @@ def progress():
 def admin_dashboard():
     with get_db() as conn:
         pasien_list = conn.execute(
-            '''SELECT u.id, u.nama, u.email, u.created_at, 
-                      (SELECT a.hasil_prediksi FROM analisis_awal a WHERE a.patient_id = u.id ORDER BY a.tanggal DESC LIMIT 1) as risiko_terakhir
+            '''SELECT u.id_users, u.nama_users, u.email, u.created_at, 
+                      (SELECT a.hasil_prediksi FROM analisis_awal a WHERE a.patient_id = u.id_users ORDER BY a.tanggal DESC LIMIT 1) as risiko_terakhir
                FROM users u
                WHERE u.role = 'pasien'
                ORDER BY u.created_at DESC'''
         ).fetchall()
     return render_template('admin_dashboard.html', pasien_list=pasien_list)
 
-@app.route('/admin/pasien/<int:patient_id>')
+@app.route('/admin/pasien/<patient_id>')
 @login_required
 @role_required('admin')
 def admin_patient_detail(patient_id):
     with get_db() as conn:
-        pasien = conn.execute('SELECT * FROM users WHERE id = ? AND role = "pasien"', (patient_id,)).fetchone()
+        pasien = conn.execute('SELECT * FROM users WHERE id_users = ? AND role = "pasien"', (patient_id,)).fetchone()
         if not pasien:
             flash('Pasien tidak ditemukan.', 'error')
             return redirect(url_for('admin_dashboard'))
             
         all_analisis = conn.execute(
-            '''SELECT a.*, u.nama as admin_nama 
+            '''SELECT a.*, u.nama_users as admin_nama 
                FROM analisis_awal a
-               LEFT JOIN users u ON a.created_by_admin_id = u.id
+               LEFT JOIN users u ON a.created_by_admin_id = u.id_users
                WHERE a.patient_id = ?
                ORDER BY a.tanggal DESC''', (patient_id,)
         ).fetchall()
@@ -625,14 +663,14 @@ def admin_patient_detail(patient_id):
         latest_analisis = all_analisis[0] if all_analisis else None
         
         logs = conn.execute(
-            '''SELECT * FROM daily_logs WHERE patient_id = ?
+            '''SELECT * FROM log_harian WHERE id_users = ?
                ORDER BY tanggal ASC''', (patient_id,)
         ).fetchall()
         
         stats = conn.execute(
             '''SELECT AVG(sleep_score) as avg_score,
                       COUNT(*) as total
-               FROM daily_logs WHERE patient_id = ?''', (patient_id,)
+               FROM log_harian WHERE id_users = ?''', (patient_id,)
         ).fetchone()
 
     chart_data = {
@@ -649,12 +687,12 @@ def admin_patient_detail(patient_id):
                            stats=stats,
                            chart_data=json.dumps(chart_data))
 
-@app.route('/admin/pasien/<int:patient_id>/analisis', methods=['GET', 'POST'])
+@app.route('/admin/pasien/<patient_id>/analisis', methods=['GET', 'POST'])
 @login_required
 @role_required('admin')
 def admin_analisis_pasien(patient_id):
     with get_db() as conn:
-        pasien = conn.execute('SELECT * FROM users WHERE id = ? AND role = "pasien"', (patient_id,)).fetchone()
+        pasien = conn.execute('SELECT * FROM users WHERE id_users = ? AND role = "pasien"', (patient_id,)).fetchone()
         if not pasien:
             flash('Pasien tidak ditemukan.', 'error')
             return redirect(url_for('admin_dashboard'))
@@ -782,7 +820,7 @@ def admin_analisis_pasien(patient_id):
 
         shap_text = '\n'.join([f'  - {k}: {v:+.4f}' for k, v in shap_sorted[:6]])
         prompt_gemini = f"""
-Kamu adalah asisten kesehatan tidur profesional. Seorang tenaga kesehatan baru saja menjalankan analisis risiko gangguan tidur untuk pasien '{pasien['nama']}'.
+Kamu adalah asisten kesehatan tidur profesional. Seorang tenaga kesehatan baru saja menjalankan analisis risiko gangguan tidur untuk pasien '{pasien['nama_users']}'.
 
 Hasil prediksi model Machine Learning:
 - Risiko terdeteksi: {pred_label}
@@ -820,18 +858,19 @@ Jangan gunakan jargon medis yang rumit. Fokus pada gaya hidup yang bisa diperbai
         }
 
         with get_db() as conn:
+            new_anl_id = generate_id_analisis(conn)
             conn.execute(
                 '''INSERT INTO analisis_awal
-                   (patient_id, created_by_admin_id, tanggal, input_data_json, hasil_prediksi,
+                   (id_analisis, patient_id, created_by_admin_id, tanggal, input_data_json, hasil_prediksi,
                     probabilitas_json, shap_values_json, penjelasan_gemini, catatan_admin)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                (patient_id, session['user_id'], datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                (new_anl_id, patient_id, session['user_id'], datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                  json.dumps(input_data), pred_label,
                  json.dumps(proba_dict), json.dumps(shap_dict),
                  penjelasan_gemini, catatan_admin)
             )
 
-        flash(f'Analisis awal untuk pasien {pasien["nama"]} berhasil disimpan!', 'success')
+        flash(f'Analisis awal untuk pasien {pasien["nama_users"]} berhasil disimpan!', 'success')
         return redirect(url_for('admin_patient_detail', patient_id=patient_id))
 
     except Exception as e:
