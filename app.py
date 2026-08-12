@@ -97,6 +97,18 @@ def generate_id_analisis(conn):
 
 def init_db():
     with get_db() as conn:
+        # Cek apakah tabel users ada dan apakah menggunakan skema baru
+        try:
+            conn.execute("SELECT id_users FROM users LIMIT 1")
+        except sqlite3.OperationalError as e:
+            err_msg = str(e)
+            if "no such column" in err_msg or "no such table" in err_msg:
+                # Drop tabel lama agar dibuat ulang dengan skema baru
+                conn.execute("DROP TABLE IF EXISTS users")
+                conn.execute("DROP TABLE IF EXISTS daily_logs")
+                conn.execute("DROP TABLE IF EXISTS log_harian")
+                conn.execute("DROP TABLE IF EXISTS analisis_awal")
+
         conn.executescript('''
             CREATE TABLE IF NOT EXISTS users (
                 id_users     TEXT PRIMARY KEY,
